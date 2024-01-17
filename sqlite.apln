@@ -1,0 +1,140 @@
+:Namespace sqlite3
+    ⎕ML←1 ⋄ ⎕IO←0
+
+    ⍝ See: https://zetcode.com/db/sqlitec/
+    ⍝ https://www.sqlite.org/cintro.html
+    ⍝ lib ← '/opt/homebrew/Cellar/sqlite/3.44.2/lib/libsqlite3.dylib'
+
+    sqlite_ret_codes ← (⍳29), 100, 101
+    sqlite_ret_syms ← 'SQLITE_OK' 'SQLITE_ERROR' 'SQLITE_INTERNAL' 'SQLITE_PERM' 'SQLITE_ABORT' 'SQLITE_BUSY' 'SQLITE_LOCKED' 'SQLITE_NOMEM' 'SQLITE_READONLY' 'SQLITE_INTERRUPT' 'SQLITE_IOERR' 'SQLITE_CORRUPT' 'SQLITE_NOTFOUND' 'SQLITE_FULL' 'SQLITE_CANTOPEN' 'SQLITE_PROTOCOL' 'SQLITE_EMPTY' 'SQLITE_SCHEMA' 'SQLITE_TOOBIG' 'SQLITE_CONSTRAINT' 'SQLITE_MISMATCH' 'SQLITE_MISUSE' 'SQLITE_NOLFS' 'SQLITE_AUTH' 'SQLITE_FORMAT' 'SQLITE_RANGE' 'SQLITE_NOTADB' 'SQLITE_NOTICE' 'SQLITE_WARNING' 'SQLITE_ROW' 'SQLITE_DONE' 'UNKNOWN'
+
+    dyalib ← 'dyalog64.dylib'
+    'get'⎕NA dyalib,'|STRNCPY >0U1[] P U4'
+    'put'⎕NA dyalib,'|STRNCPY I4 <0T[] U4'
+    'len'⎕NA 'P ',dyalib,'|STRLEN P'
+
+    ∇ init lib
+      ⍝ const char *sqlite3_libversion(void);
+      ⎕NA'P ',lib,'|sqlite3_libversion'
+
+      ⍝ const char *sqlite3_sourceid(void);
+      ⎕NA'P ',lib,'|sqlite3_sourceid'
+
+      ⍝ int sqlite3_libversion_number(void);
+      ⎕NA'I4 ',lib,'|sqlite3_libversion_number'
+
+      ⍝ int sqlite3_compileoption_used(const char *zOptName)
+      ⎕NA'U4 ',lib,'|sqlite3_compileoption_used <0UTF8[]'
+
+      ⍝ const char *sqlite3_compileoption_get(int N)
+      ⎕NA'P ',lib,'|sqlite3_compileoption_get U4'
+
+      ⍝ int sqlite3_threadsafe(void)
+      ⎕NA'U4 ',lib,'|sqlite3_threadsafe'
+
+      ⍝ int sqlite3_open(
+      ⍝    const char *filename,   ⍝ Database filename (UTF-8) 
+      ⍝    sqlite3 **ppDb          ⍝ OUT: SQLite db handle 
+      ⍝ )
+      ⍝ https://www.sqlite.org/c3ref/open.html
+      ⎕NA'I4 ',lib,'|sqlite3_open <0UTF8[] >P'
+
+      ⍝ int sqlite3_close(sqlite3*)
+      ⍝ https://www.sqlite.org/c3ref/close.html
+      ⎕NA'I4 ',lib,'|sqlite3_close P'
+
+      ⍝ int sqlite3_prepare_v2(
+      ⍝     sqlite3 *db,            /* Database handle */
+      ⍝     const char *zSql,       /* SQL statement, UTF-8 encoded */
+      ⍝     int nByte,              /* Maximum length of zSql in bytes. */
+      ⍝     sqlite3_stmt **ppStmt,  /* OUT: Statement handle */
+      ⍝     const char **pzTail     /* OUT: Pointer to unused portion of zSql */
+      ⍝ );
+      ⍝ https://www.sqlite.org/c3ref/prepare.html
+      ⎕NA'I4 ',lib,'|sqlite3_prepare_v2 P <0UTF8[] I4 >P >P'
+
+      ⍝ int sqlite3_step(sqlite3_stmt*)
+      ⍝ https://www.sqlite.org/c3ref/step.html
+      ⎕NA'I4 ',lib,'|sqlite3_step P'
+
+      ⍝ const unsigned char *sqlite3_column_text(sqlite3_stmt*, int iCol)
+      ⍝ https://www.sqlite.org/c3ref/column_blob.html
+      ⎕NA'P ',lib,'|sqlite3_column_text P I4'
+
+      ⍝ int sqlite3_finalize(sqlite3_stmt *pStmt)
+      ⍝ https://www.sqlite.org/c3ref/finalize.html
+      ⎕NA'I4 ',lib,'|sqlite3_finalize P'
+
+    ∇
+
+    ∇ errch err
+      :if err ≠ 0
+          msg ← (sqlite_ret_codes⍳err)⊃sqlite_ret_syms
+          ('Sqlite3 error: ',msg)⎕SIGNAL 11
+      :endif
+    ∇
+    
+    ∇ r ← libversion_number
+      r ← sqlite3_libversion_number
+    ∇
+
+    ∇ r ← sourcecid;l;p
+      p ← sqlite3_sourceid
+      l ← len p
+      r ← 'UTF-8'⎕UCS get l p l
+    ∇
+
+    ∇ r ← libversion;l;p
+      p ← sqlite3_libversion
+      l ← len p
+      r ← 'UTF-8'⎕UCS get l p l
+    ∇
+
+    ∇ r ← compileoption_used zOptName
+      ⍝ sqlite3.compileoption_used ⊂'DEFAULT_AUTOVACUUM'
+      r ← sqlite3_compileoption_used zOptName
+    ∇
+
+    ∇ r ← compileoption_get N;l;p
+      p ← sqlite3_compileoption_get N
+      l ← len p
+      r ← 'UTF-8'⎕UCS get l p l
+    ∇
+
+    ∇ r ← threadsafe
+      r ← sqlite3_threadsafe
+    ∇
+
+    ∇ r ← open filename;err
+      (err r) ← sqlite3_open filename 1
+      errch err
+    ∇
+
+    ∇ close db;err
+      err ← sqlite3_close db
+      errch err
+    ∇
+
+    ∇ r ← prepare_v2(db zSql);_;err
+      ⍝ TODO: return the last element of the returned tuple, too.
+      ⍝ As it stands, only the first SQL statement in `stmt` will be compiled.
+      (err r _) ← sqlite3_prepare_v2 db zSql ¯1 1 1
+      errch err
+    ∇
+
+    ∇ r ← step sqlite3_stmt
+      r ← sqlite3_step sqlite3_stmt
+    ∇
+
+    ∇ r ← column_text(sqlite3_stmt iCol);l;p
+      p ← sqlite3_column_text sqlite3_stmt iCol
+      l ← len p
+      r ← 'UTF-8'⎕UCS get l p l
+    ∇
+
+    ∇ r ← finalize sqlite3_stmt;err
+      err ← sqlite3_finalize sqlite3_stmt
+      errch err
+    ∇
+    
+:EndNamespace
