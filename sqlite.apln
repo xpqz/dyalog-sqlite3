@@ -61,7 +61,7 @@
 
       ⍝ int sqlite3_column_count(sqlite3_stmt *pStmt)
       ⍝ https://www.sqlite.org/c3ref/column_count.html
-      ⎕NA'I4 ',lib,'|sqlite3_column_count P I4'
+      ⎕NA'I4 ',lib,'|sqlite3_column_count P'
 
       ⍝ const unsigned char *sqlite3_column_text(sqlite3_stmt*, int iCol)
       ⍝ https://www.sqlite.org/c3ref/column_blob.html
@@ -183,8 +183,8 @@
       r ← sqlite3_column_int sqlite3_stmt iCol
     ∇
 
-    ∇ r ← column_count(sqlite3_stmt iCol)
-      r ← sqlite3_column_count sqlite3_stmt iCol
+    ∇ r ← column_count(sqlite3_stmt)
+      r ← sqlite3_column_count sqlite3_stmt
     ∇
 
     ∇ r ← column_bytes(sqlite3_stmt iCol)
