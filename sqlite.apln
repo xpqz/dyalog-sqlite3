@@ -206,7 +206,7 @@
       r ← 'UTF-8'⎕UCS get l p l
     ∇
 
-    ∇ r ← column_type(sqlite3_stmt iCol);l;p
+    ∇ r ← column_type(sqlite3_stmt iCol)
       ⍝ Returns one of SQLITE_INTEGER, SQLITE_FLOAT, SQLITE_TEXT, SQLITE_BLOB, or SQLITE_NULL
       r ← sqlite3_column_type sqlite3_stmt iCol
     ∇
@@ -230,6 +230,34 @@
 
     ∇ r←last_insert_rowid db
       r←sqlite3_last_insert_rowid db
+    ∇
+
+    ∇ r←row sqlite3_stmt;col;count;size;type
+      count ← sqlite3_column_count sqlite3_stmt
+      r ← ⍬
+      :for col :in ⍳count
+          type ← sqlite3_column_type sqlite3_stmt col
+          size ← sqlite3_column_bytes sqlite3_stmt col
+          :select type
+          :case sqlite_type_names⍳'SQLITE_INTEGER'
+              :if size ≤ 4
+                  r ,← ⊂column_int sqlite3_stmt col
+              :else
+                  r ,← ⊂column_int64 sqlite3_stmt col
+              :endif
+          :case sqlite_type_names⍳'SQLITE_FLOAT'
+              r ,← ⊂column_double sqlite3_stmt col
+          :case sqlite_type_names⍳'SQLITE_TEXT'
+              r ,← ⊂column_text sqlite3_stmt col
+          :case sqlite_type_names⍳'SQLITE_NULL'
+              r ,← ⊂⎕NULL
+          :case sqlite_type_names⍳'SQLITE_BLOB'
+              ⍝ TODO!
+              r ,← ⊂⎕NULL
+          :else
+              ('Unknown sqlite3 column type: ',type)⎕SIGNAL 11
+          :endselect
+      :endfor
     ∇
     
 :EndNamespace
