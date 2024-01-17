@@ -8,6 +8,8 @@
     sqlite_ret_codes ← (⍳29), 100, 101
     sqlite_ret_syms ← 'SQLITE_OK' 'SQLITE_ERROR' 'SQLITE_INTERNAL' 'SQLITE_PERM' 'SQLITE_ABORT' 'SQLITE_BUSY' 'SQLITE_LOCKED' 'SQLITE_NOMEM' 'SQLITE_READONLY' 'SQLITE_INTERRUPT' 'SQLITE_IOERR' 'SQLITE_CORRUPT' 'SQLITE_NOTFOUND' 'SQLITE_FULL' 'SQLITE_CANTOPEN' 'SQLITE_PROTOCOL' 'SQLITE_EMPTY' 'SQLITE_SCHEMA' 'SQLITE_TOOBIG' 'SQLITE_CONSTRAINT' 'SQLITE_MISMATCH' 'SQLITE_MISUSE' 'SQLITE_NOLFS' 'SQLITE_AUTH' 'SQLITE_FORMAT' 'SQLITE_RANGE' 'SQLITE_NOTADB' 'SQLITE_NOTICE' 'SQLITE_WARNING' 'SQLITE_ROW' 'SQLITE_DONE' 'UNKNOWN'
 
+    sqlite_type_names ← 'SQLITE_INTEGER' 'SQLITE_FLOAT' 'SQLITE_TEXT' 'SQLITE_BLOB' 'SQLITE_NULL' 'UNKNOWN'
+
     dyalib ← 'dyalog64.dylib'
     'get'⎕NA dyalib,'|STRNCPY >0U1[] P U4'
     'put'⎕NA dyalib,'|STRNCPY I4 <0T[] U4'
@@ -57,14 +59,59 @@
       ⍝ https://www.sqlite.org/c3ref/step.html
       ⎕NA'I4 ',lib,'|sqlite3_step P'
 
+      ⍝ int sqlite3_column_count(sqlite3_stmt *pStmt)
+      ⍝ https://www.sqlite.org/c3ref/column_count.html
+      ⎕NA'I4 ',lib,'|sqlite3_column_count P I4'
+
       ⍝ const unsigned char *sqlite3_column_text(sqlite3_stmt*, int iCol)
       ⍝ https://www.sqlite.org/c3ref/column_blob.html
       ⎕NA'P ',lib,'|sqlite3_column_text P I4'
+
+      ⍝ double sqlite3_column_double(sqlite3_stmt*, int iCol)
+      ⍝ https://www.sqlite.org/c3ref/column_blob.html
+      ⎕NA'F8 ',lib,'|sqlite3_column_double P I4'
+
+      ⍝ int sqlite3_column_int(sqlite3_stmt*, int iCol)
+      ⍝ https://www.sqlite.org/c3ref/column_blob.html
+      ⎕NA'I4 ',lib,'|sqlite3_column_int P I4'
+
+      ⍝ int sqlite3_column_bytes(sqlite3_stmt*, int iCol)
+      ⍝ https://www.sqlite.org/c3ref/column_blob.html
+      ⎕NA'I4 ',lib,'|sqlite3_column_bytes P I4'
+
+      ⍝ int sqlite3_column_int64(sqlite3_stmt*, int iCol)
+      ⍝ https://www.sqlite.org/c3ref/column_blob.html
+      ⎕NA'I8 ',lib,'|sqlite3_column_int64 P I4'
+
+      ⍝ const char *sqlite3_column_name(sqlite3_stmt*, int N)
+      ⍝ https://www.sqlite.org/c3ref/column_name.html
+      ⎕NA'P ',lib,'|sqlite3_column_name P I4'
+
+      ⍝ int sqlite3_column_type(sqlite3_stmt*, int iCol)
+      ⍝ https://www.sqlite.org/c3ref/column_blob.html
+      ⎕NA'I4 ',lib,'|sqlite3_column_type P I4'
 
       ⍝ int sqlite3_finalize(sqlite3_stmt *pStmt)
       ⍝ https://www.sqlite.org/c3ref/finalize.html
       ⎕NA'I4 ',lib,'|sqlite3_finalize P'
 
+      ⍝ int sqlite3_exec(
+      ⍝   sqlite3*,                                  /* An open database */
+      ⍝   const char *sql,                           /* SQL to be evaluated */
+      ⍝   int (*callback)(void*,int,char**,char**),  /* Callback function */
+      ⍝   void *,                                    /* 1st argument to callback */
+      ⍝   char **errmsg                              /* Error msg written here */
+      ⍝ );
+      ⍝ https://www.sqlite.org/c3ref/exec.html
+      ⎕NA'I4 ',lib,'|sqlite3_exec P <0UTF8[] P P >P'
+
+      ⍝ void sqlite3_free(void*)
+      ⍝ https://www.sqlite.org/c3ref/free.html
+      ⎕NA lib,'|sqlite3_free P'
+
+      ⍝ sqlite3_int64 sqlite3_last_insert_rowid(sqlite3*)
+      ⍝ https://www.sqlite.org/c3ref/last_insert_rowid.html
+      ⎕NA'I8 ',lib,'|sqlite3_last_insert_rowid P'
     ∇
 
     ∇ errch err
@@ -132,9 +179,57 @@
       r ← 'UTF-8'⎕UCS get l p l
     ∇
 
+    ∇ r ← column_int(sqlite3_stmt iCol)
+      r ← sqlite3_column_int sqlite3_stmt iCol
+    ∇
+
+    ∇ r ← column_count(sqlite3_stmt iCol)
+      r ← sqlite3_column_count sqlite3_stmt iCol
+    ∇
+
+    ∇ r ← column_bytes(sqlite3_stmt iCol)
+      ⍝ Size of a BLOB or a UTF-8 TEXT result in bytes
+      r ← sqlite3_column_bytes sqlite3_stmt iCol
+    ∇
+
+    ∇ r ← column_int64(sqlite3_stmt iCol)
+      r ← sqlite3_column_int64 sqlite3_stmt iCol
+    ∇
+
+    ∇ r ← column_double(sqlite3_stmt iCol)
+      r ← sqlite3_column_double sqlite3_stmt iCol
+    ∇
+
+    ∇ r ← column_name(sqlite3_stmt iCol);l;p
+      p ← sqlite3_column_name sqlite3_stmt iCol
+      l ← len p
+      r ← 'UTF-8'⎕UCS get l p l
+    ∇
+
+    ∇ r ← column_type(sqlite3_stmt iCol);l;p
+      ⍝ Returns one of SQLITE_INTEGER, SQLITE_FLOAT, SQLITE_TEXT, SQLITE_BLOB, or SQLITE_NULL
+      r ← sqlite3_column_type sqlite3_stmt iCol
+    ∇
+
     ∇ r ← finalize sqlite3_stmt;err
       err ← sqlite3_finalize sqlite3_stmt
       errch err
+    ∇
+
+    ∇ exec(db sql);errmsg;l;msg;rc
+      ⍝ The last argument (the returned error message string) must be freed.
+      ⍝ Note: we can't use the callback feature without writing C.
+      (rc errmsg) ← sqlite3_exec db sql 0 0 1
+      :if rc ≠ 0
+          l ← len errmsg
+          msg ← 'UTF-8'⎕UCS get l errmsg l
+          sqlite3_free errmsg
+          ('Sqlite3 error: ',msg)⎕SIGNAL 11
+      :endif
+    ∇
+
+    ∇ r←last_insert_rowid db
+      r←sqlite3_last_insert_rowid db
     ∇
     
 :EndNamespace
