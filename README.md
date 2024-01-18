@@ -32,3 +32,27 @@ You should now be able to use it, for example
       sqlite3.finalize sh
       sqlite3.close db
 ```
+
+The function `sqlite3.table` is the one QoL concession beyond the basic API:
+
+```apl
+      db ← sqlite3.open 'foo.db'
+      sh ← sqlite3.prepare_v2(db 'SELECT * FROM Cars')
+      sqlite3.table sh
+
+1  Audi         52642
+2  Mercedes     57127
+3  Skoda         9000
+4  Volvo        29000
+5  Bentley     350000
+6  Hummer       41400
+7  Citroen      21000
+8  Volkswagen   21600
+9  Tesla        55000
+```
+
+It consumes a live statement handle, and returns the contents as an APL array.
+
+## NOTE: THIS IS C!
+
+This tracks the underlying C-APL closely. The values returned by, for example, `prepare_v2` are essentially C-pointers. No attempts have been made to protect the APL-user from the sharp edges this entails: you need to free up resources you're done with (with `finalize` and `close`). If you free a resource that's already been freed, Bad Things may happen.
