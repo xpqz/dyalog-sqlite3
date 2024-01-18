@@ -4,11 +4,22 @@
     ⍝ See: https://zetcode.com/db/sqlitec/
     ⍝ https://www.sqlite.org/cintro.html
     ⍝ lib ← '/opt/homebrew/Cellar/sqlite/3.44.2/lib/libsqlite3.dylib'
+    ⍝
+    ⍝ sqlite3.init lib  
+    ⍝ db ← sqlite3.open 'foo.db'
+    ⍝ sh ← sqlite3.prepare_v2(db 'SELECT SQLITE_VERSION()')
+    ⍝ rc ← sqlite3.step sh
+    ⍝ sqlite3.column_text sh 0
+    ⍝
+    ⍝ 3.44.2
+    ⍝ sqlite3.finalize sh
+    ⍝ sqlite3.close db
 
     sqlite_ret_codes ← (⍳29), 100, 101
     sqlite_ret_syms ← 'SQLITE_OK' 'SQLITE_ERROR' 'SQLITE_INTERNAL' 'SQLITE_PERM' 'SQLITE_ABORT' 'SQLITE_BUSY' 'SQLITE_LOCKED' 'SQLITE_NOMEM' 'SQLITE_READONLY' 'SQLITE_INTERRUPT' 'SQLITE_IOERR' 'SQLITE_CORRUPT' 'SQLITE_NOTFOUND' 'SQLITE_FULL' 'SQLITE_CANTOPEN' 'SQLITE_PROTOCOL' 'SQLITE_EMPTY' 'SQLITE_SCHEMA' 'SQLITE_TOOBIG' 'SQLITE_CONSTRAINT' 'SQLITE_MISMATCH' 'SQLITE_MISUSE' 'SQLITE_NOLFS' 'SQLITE_AUTH' 'SQLITE_FORMAT' 'SQLITE_RANGE' 'SQLITE_NOTADB' 'SQLITE_NOTICE' 'SQLITE_WARNING' 'SQLITE_ROW' 'SQLITE_DONE' 'UNKNOWN'
 
-    sqlite_type_names ← 'SQLITE_INTEGER' 'SQLITE_FLOAT' 'SQLITE_TEXT' 'SQLITE_BLOB' 'SQLITE_NULL' 'UNKNOWN'
+    ⍝ Fundamental data types; see https://www.sqlite.org/c3ref/c_blob.html
+    (SQLITE_INTEGER SQLITE_FLOAT SQLITE_TEXT SQLITE_BLOB) ← 1 2 3 4
 
     dyalib ← 'dyalog64.dylib'
     'get'⎕NA dyalib,'|STRNCPY >0U1[] P U4'
@@ -239,23 +250,19 @@
           type ← sqlite3_column_type sqlite3_stmt col
           size ← sqlite3_column_bytes sqlite3_stmt col
           :select type
-          :case sqlite_type_names⍳'SQLITE_INTEGER'
+          :case SQLITE_INTEGER
               :if size ≤ 4
                   r ,← ⊂column_int sqlite3_stmt col
               :else
                   r ,← ⊂column_int64 sqlite3_stmt col
               :endif
-          :case sqlite_type_names⍳'SQLITE_FLOAT'
+          :case SQLITE_FLOAT
               r ,← ⊂column_double sqlite3_stmt col
-          :case sqlite_type_names⍳'SQLITE_TEXT'
+          :case SQLITE_TEXT
               r ,← ⊂column_text sqlite3_stmt col
-          :case sqlite_type_names⍳'SQLITE_NULL'
-              r ,← ⊂⎕NULL
-          :case sqlite_type_names⍳'SQLITE_BLOB'
-              ⍝ TODO!
-              r ,← ⊂⎕NULL
           :else
-              ('Unknown sqlite3 column type: ',type)⎕SIGNAL 11
+              ⍝ TODO: SQLITE_BLOB should not be NULL
+              r ,← ⊂⎕NULL
           :endselect
       :endfor
     ∇
