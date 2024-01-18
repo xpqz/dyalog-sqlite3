@@ -15,11 +15,12 @@
     ⍝ sqlite3.finalize sh
     ⍝ sqlite3.close db
 
-    sqlite_ret_codes ← (⍳29), 100, 101
-    sqlite_ret_syms ← 'SQLITE_OK' 'SQLITE_ERROR' 'SQLITE_INTERNAL' 'SQLITE_PERM' 'SQLITE_ABORT' 'SQLITE_BUSY' 'SQLITE_LOCKED' 'SQLITE_NOMEM' 'SQLITE_READONLY' 'SQLITE_INTERRUPT' 'SQLITE_IOERR' 'SQLITE_CORRUPT' 'SQLITE_NOTFOUND' 'SQLITE_FULL' 'SQLITE_CANTOPEN' 'SQLITE_PROTOCOL' 'SQLITE_EMPTY' 'SQLITE_SCHEMA' 'SQLITE_TOOBIG' 'SQLITE_CONSTRAINT' 'SQLITE_MISMATCH' 'SQLITE_MISUSE' 'SQLITE_NOLFS' 'SQLITE_AUTH' 'SQLITE_FORMAT' 'SQLITE_RANGE' 'SQLITE_NOTADB' 'SQLITE_NOTICE' 'SQLITE_WARNING' 'SQLITE_ROW' 'SQLITE_DONE' 'UNKNOWN'
-
     ⍝ Fundamental data types; see https://www.sqlite.org/c3ref/c_blob.html
-    (SQLITE_INTEGER SQLITE_FLOAT SQLITE_TEXT SQLITE_BLOB) ← 1 2 3 4
+    (SQLITE_INTEGER SQLITE_FLOAT SQLITE_TEXT SQLITE_BLOB SQLITE_NULL) ← 1 2 3 4 5
+
+    ⍝ Result codes; see https://www.sqlite.org/c3ref/c_abort.html
+    sqlite_rc_syms ← 'SQLITE_OK' 'SQLITE_ERROR' 'SQLITE_INTERNAL' 'SQLITE_PERM' 'SQLITE_ABORT' 'SQLITE_BUSY' 'SQLITE_LOCKED' 'SQLITE_NOMEM' 'SQLITE_READONLY' 'SQLITE_INTERRUPT' 'SQLITE_IOERR' 'SQLITE_CORRUPT' 'SQLITE_NOTFOUND' 'SQLITE_FULL' 'SQLITE_CANTOPEN' 'SQLITE_PROTOCOL' 'SQLITE_EMPTY' 'SQLITE_SCHEMA' 'SQLITE_TOOBIG' 'SQLITE_CONSTRAINT' 'SQLITE_MISMATCH' 'SQLITE_MISUSE' 'SQLITE_NOLFS' 'SQLITE_AUTH' 'SQLITE_FORMAT' 'SQLITE_RANGE' 'SQLITE_NOTADB' 'SQLITE_NOTICE' 'SQLITE_WARNING' 'SQLITE_ROW' 'SQLITE_DONE'
+    sqlite_rc ← (SQLITE_OK SQLITE_ERROR SQLITE_INTERNAL SQLITE_PERM SQLITE_ABORT SQLITE_BUSY SQLITE_LOCKED SQLITE_NOMEM SQLITE_READONLY SQLITE_INTERRUPT SQLITE_IOERR SQLITE_CORRUPT SQLITE_NOTFOUND SQLITE_FULL SQLITE_CANTOPEN SQLITE_PROTOCOL SQLITE_EMPTY SQLITE_SCHEMA SQLITE_TOOBIG SQLITE_CONSTRAINT SQLITE_MISMATCH SQLITE_MISUSE SQLITE_NOLFS SQLITE_AUTH SQLITE_FORMAT SQLITE_RANGE SQLITE_NOTADB SQLITE_NOTICE SQLITE_WARNING SQLITE_ROW SQLITE_DONE) ← (⍳29),100,101
 
     dyalib ← 'dyalog64.dylib'
     'get'⎕NA dyalib,'|STRNCPY >0U1[] P U4'
@@ -27,6 +28,8 @@
     'len'⎕NA 'P ',dyalib,'|STRLEN P'
 
     ∇ init lib
+      ⍝ Map a subset of the sqlite3 C-API to Dyalog APL.
+
       ⍝ const char *sqlite3_libversion(void);
       ⎕NA'P ',lib,'|sqlite3_libversion'
 
@@ -125,9 +128,10 @@
       ⎕NA'I8 ',lib,'|sqlite3_last_insert_rowid P'
     ∇
 
-    ∇ errch err
-      :if err ≠ 0
-          msg ← (sqlite_ret_codes⍳err)⊃sqlite_ret_syms
+    ∇ errch rc
+      ⍝ Check an API-function's return code, raise an error if not SQLITE_OK
+      :if rc ≠ SQLITE_OK
+          msg ← (sqlite_rc⍳rc)⊃sqlite_ret_syms
           ('Sqlite3 error: ',msg)⎕SIGNAL 11
       :endif
     ∇
@@ -199,7 +203,6 @@
     ∇
 
     ∇ r ← column_bytes(sqlite3_stmt iCol)
-      ⍝ Size of a BLOB or a UTF-8 TEXT result in bytes
       r ← sqlite3_column_bytes sqlite3_stmt iCol
     ∇
 
@@ -260,11 +263,25 @@
               r ,← ⊂column_double sqlite3_stmt col
           :case SQLITE_TEXT
               r ,← ⊂column_text sqlite3_stmt col
-          :else
-              ⍝ TODO: SQLITE_BLOB should not be NULL
+          :case SQLITE_NULL
+              r ,← ⊂⎕NULL
+          :else ⍝ TODO: SQLITE_BLOB should not be NULL
               r ,← ⊂⎕NULL
           :endselect
       :endfor
     ∇
-    
+
+    ∇ r←table sqlite3_stmt;msg;rc
+      ⍝ Consume the rows returned by sqlite3_stmt and return as an APL array
+      r ← ⍬
+      :while SQLITE_ROW = rc ← sqlite3_step sqlite3_stmt
+          r ,← ⊂row sqlite3_stmt
+      :endwhile
+      :if rc ≠ SQLITE_DONE
+          msg ← (sqlite_rc⍳rc)⊃sqlite_ret_syms
+          ('Sqlite3 error: ',msg)⎕SIGNAL 11
+      :endif
+      r ← ↑r
+    ∇
+
 :EndNamespace
