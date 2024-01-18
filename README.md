@@ -55,4 +55,4 @@ It consumes a live statement handle, and returns the contents as an APL array.
 
 ## NOTE: THIS IS C!
 
-This tracks the underlying C-APL closely. The values returned by, for example, `prepare_v2` are essentially C-pointers. No attempts have been made to protect the APL-user from the sharp edges this entails: you need to free up resources you're done with (with `finalize` and `close`). If you free a resource that's already been freed, Bad Things may happen.
+This tracks the underlying API closely. The values returned by, for example, `prepare_v2` are essentially C pointers. No attempts have been made to protect the APL user from the sharp edges this entails: you need to free up resources you're done with (with `finalize` and `close`). If you free a resource that's already been freed, Bad Things may happen.
